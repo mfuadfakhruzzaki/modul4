@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Alert,
   ActivityIndicator,
+  Vibration, // Import Vibration API
 } from "react-native";
 import Header from "@/components/ui/Header";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -28,6 +29,7 @@ export default function HomeScreen() {
   const [data, setData] = useState<UserData | null>(null);
   const [count, setCount] = useState<number>(1);
   const [loading, setLoading] = useState<boolean>(false);
+  const [hasReachedEnd, setHasReachedEnd] = useState<boolean>(false);
 
   // Fetch user data whenever 'count' changes
   useEffect(() => {
@@ -47,6 +49,20 @@ export default function HomeScreen() {
     fetchData();
   }, [count]);
 
+  // Alert and Vibration when reaching the end
+  useEffect(() => {
+    if (count === MAX_COUNT) {
+      // Trigger vibration
+      Vibration.vibrate([500]);
+
+      // Show alert
+      Alert.alert("End of List", "You have reached the last user.");
+      setHasReachedEnd(true);
+    } else {
+      setHasReachedEnd(false);
+    }
+  }, [count]);
+
   // Handler to go to the previous user
   const prevButtonHandler = useCallback(() => {
     setCount((prev) => Math.max(prev - 1, MIN_COUNT));
@@ -54,8 +70,13 @@ export default function HomeScreen() {
 
   // Handler to go to the next user
   const nextButtonHandler = useCallback(() => {
-    setCount((prev) => Math.min(prev + 1, MAX_COUNT));
-  }, []);
+    if (count < MAX_COUNT) {
+      setCount((prev) => prev + 1);
+    } else {
+      // Optionally, you can uncomment the line below if you want to alert when trying to go beyond
+      Alert.alert("End of List", "You have already reached the last user.");
+    }
+  }, [count]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -84,11 +105,16 @@ export default function HomeScreen() {
               <Text style={styles.buttonText}>Prev</Text>
             </TouchableOpacity>
           )}
-          {count < MAX_COUNT && (
-            <TouchableOpacity onPress={nextButtonHandler} style={styles.button}>
-              <Text style={styles.buttonText}>Next</Text>
-            </TouchableOpacity>
-          )}
+          <TouchableOpacity
+            onPress={nextButtonHandler}
+            style={[
+              styles.button,
+              count === MAX_COUNT && styles.disabledButton,
+            ]}
+            disabled={count === MAX_COUNT}
+          >
+            <Text style={styles.buttonText}>Next</Text>
+          </TouchableOpacity>
         </View>
       </View>
     </SafeAreaView>
@@ -141,6 +167,9 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 2,
     borderColor: "#000",
+  },
+  disabledButton: {
+    borderColor: "gray",
   },
   buttonText: {
     color: "black",
